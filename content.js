@@ -1,4 +1,4 @@
-console.log('🚀 Deepseek Folder Manager Loaded');
+console.log('🚀 Deepseek Folder Manager Loaded (with Sync Storage)');
 
 // 1️⃣ Wait until the sidebar is available — Deepseek might load dynamically
 function waitForSidebar() {
@@ -14,10 +14,8 @@ function waitForSidebar() {
 
 // 2️⃣ Inject Folder Manager UI into the sidebar
 function injectFolderManager(sidebar) {
-    // Avoid injecting more than once
-    if (document.getElementById('folderManagerContainer')) return;
+    if (document.getElementById('folderManagerContainer')) return;  // Prevent duplicate injection
 
-    // Create the folder manager container
     const folderManager = document.createElement('div');
     folderManager.id = 'folderManagerContainer';
     folderManager.style.padding = '10px';
@@ -28,14 +26,12 @@ function injectFolderManager(sidebar) {
     folderManager.style.backgroundColor = '#1f1f1f';
     folderManager.style.borderRadius = '5px';
 
-    // Title
     const title = document.createElement('h3');
-    title.innerText = '📂 Folder Manager';
+    title.innerText = '📂 Folder Manager (Synced)';
     title.style.fontSize = '14px';
     title.style.marginBottom = '8px';
     folderManager.appendChild(title);
 
-    // Create Folder button
     const createFolderButton = document.createElement('button');
     createFolderButton.innerText = '➕ Create Folder';
     createFolderButton.style.padding = '6px 10px';
@@ -45,17 +41,15 @@ function injectFolderManager(sidebar) {
     createFolderButton.style.border = 'none';
     createFolderButton.style.borderRadius = '4px';
 
-    // Folder container (where new folders will go)
     const folderList = document.createElement('div');
     folderList.id = 'folderList';
     folderList.style.marginTop = '10px';
 
-    // Add folder on button click
     createFolderButton.onclick = () => {
         const folderName = prompt('Enter folder name:');
         if (folderName) {
             addFolder(folderName, folderList);
-            saveFoldersToStorage();  // Persist folders
+            saveFoldersToSyncStorage();
         }
     };
 
@@ -63,8 +57,7 @@ function injectFolderManager(sidebar) {
     folderManager.appendChild(folderList);
     sidebar.appendChild(folderManager);
 
-    // Load saved folders from storage on startup
-    loadFoldersFromStorage(folderList);
+    loadFoldersFromSyncStorage(folderList);
 }
 
 // 3️⃣ Function to add a folder to the list
@@ -79,7 +72,6 @@ function addFolder(name, container) {
     folder.style.justifyContent = 'space-between';
     folder.style.alignItems = 'center';
 
-    // Delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.innerText = '❌';
     deleteBtn.style.marginLeft = '10px';
@@ -91,24 +83,29 @@ function addFolder(name, container) {
 
     deleteBtn.onclick = () => {
         folder.remove();
-        saveFoldersToStorage();  // Update saved folders after deletion
+        saveFoldersToSyncStorage();
     };
 
     folder.appendChild(deleteBtn);
     container.appendChild(folder);
 }
 
-// 4️⃣ Save folders to `localStorage`
-function saveFoldersToStorage() {
+// 4️⃣ Save folders to chrome.storage.sync
+function saveFoldersToSyncStorage() {
     const folderNames = Array.from(document.querySelectorAll('#folderList div'))
         .map(folder => folder.innerText.replace('❌', '').trim());
-    localStorage.setItem('deepseekFolders', JSON.stringify(folderNames));
+    chrome.storage.sync.set({ deepseekFolders: folderNames }, () => {
+        console.log('📁 Folders saved to sync storage:', folderNames);
+    });
 }
 
-// 5️⃣ Load folders from `localStorage`
-function loadFoldersFromStorage(container) {
-    const savedFolders = JSON.parse(localStorage.getItem('deepseekFolders') || '[]');
-    savedFolders.forEach(folderName => addFolder(folderName, container));
+// 5️⃣ Load folders from chrome.storage.sync
+function loadFoldersFromSyncStorage(container) {
+    chrome.storage.sync.get(['deepseekFolders'], (result) => {
+        const savedFolders = result.deepseekFolders || [];
+        console.log('📂 Loaded folders from sync storage:', savedFolders);
+        savedFolders.forEach(folderName => addFolder(folderName, container));
+    });
 }
 
 // 🚀 Start the sidebar detection
