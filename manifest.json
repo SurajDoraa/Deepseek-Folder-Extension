@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "Deepseek Folder Manager",
+    "version": "1.0",
+    "permissions": ["storage", "activeTab"],
+    "host_permissions": ["https://deepseek.com/*"],
+    "content_scripts": [
+        {
+            "matches": ["https://deepseek.com/*"],
+            "js": ["content.js"],
+            "css": ["styles.css"]
+        }
+    ],
+    "action": {
+        "default_title": "Deepseek Folder Manager",
+        "default_icon": "icon.png"
+    }
+}
