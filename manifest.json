@@ -2,8 +2,14 @@
     "name": "Deepseek Folder Manager",
     "version": "1.0",
     "manifest_version": 3,
-    "permissions": ["scripting", "activeTab"],
-    "host_permissions": ["https://chat.deepseek.com/*"],
+    "permissions": [
+        "scripting",
+        "activeTab",
+        "storage"  
+    ],
+    "host_permissions": [
+        "https://chat.deepseek.com/*"
+    ],
     "background": {
         "service_worker": "background.js"
     },
