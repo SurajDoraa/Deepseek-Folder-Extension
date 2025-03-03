@@ -60,9 +60,10 @@ function injectFolderManager(sidebar) {
     loadFoldersFromSyncStorage(folderList);
 }
 
-// 3️⃣ Function to add a folder to the list
+// 3️⃣ Add a folder (render only)
 function addFolder(name, container) {
     const folder = document.createElement('div');
+    folder.dataset.folderName = name; // store plain name for easier removal & saving
     folder.innerText = `📁 ${name}`;
     folder.style.marginTop = '5px';
     folder.style.padding = '5px';
@@ -90,16 +91,16 @@ function addFolder(name, container) {
     container.appendChild(folder);
 }
 
-// 4️⃣ Save folders to chrome.storage.sync
+// 4️⃣ Save folders (store plain names without 📁)
 function saveFoldersToSyncStorage() {
     const folderNames = Array.from(document.querySelectorAll('#folderList div'))
-        .map(folder => folder.innerText.replace('❌', '').trim());
+        .map(folder => folder.dataset.folderName);  // Use the stored name, not the text content
     chrome.storage.sync.set({ deepseekFolders: folderNames }, () => {
         console.log('📁 Folders saved to sync storage:', folderNames);
     });
 }
 
-// 5️⃣ Load folders from chrome.storage.sync
+// 5️⃣ Load folders (plain names, add 📁 on display only)
 function loadFoldersFromSyncStorage(container) {
     chrome.storage.sync.get(['deepseekFolders'], (result) => {
         const savedFolders = result.deepseekFolders || [];
@@ -108,5 +109,5 @@ function loadFoldersFromSyncStorage(container) {
     });
 }
 
-// 🚀 Start the sidebar detection
+// 🚀 Start sidebar detection
 waitForSidebar();
