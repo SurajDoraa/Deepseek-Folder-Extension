@@ -1,18 +1,20 @@
 {
-    "manifest_version": 3,
     "name": "Deepseek Folder Manager",
     "version": "1.0",
-    "permissions": ["storage", "activeTab"],
-    "host_permissions": ["https://deepseek.com/*"],
+    "manifest_version": 3,
+    "permissions": ["scripting", "activeTab"],
+    "host_permissions": ["https://chat.deepseek.com/*"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Folder Manager"
+    },
     "content_scripts": [
         {
-            "matches": ["https://deepseek.com/*"],
+            "matches": ["https://chat.deepseek.com/*"],
             "js": ["content.js"],
-            "css": ["styles.css"]
+            "run_at": "document_idle"
         }
-    ],
-    "action": {
-        "default_title": "Deepseek Folder Manager",
-        "default_icon": "icon.png"
-    }
+    ]
 }
