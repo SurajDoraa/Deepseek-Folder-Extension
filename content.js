@@ -1,21 +1,17 @@
-console.log('🚀 Deepseek Folder Manager Loaded (with Sync Storage)');
+console.log('🚀 Deepseek Folder Manager Loaded with Create Button');
 
-// 1️⃣ Wait until the sidebar is available — Deepseek might load dynamically
-function waitForSidebar() {
-    const sidebar = document.querySelector('.b8812f16'); // Confirmed sidebar class
-    if (sidebar) {
-        console.log('✅ Sidebar found:', sidebar);
+// Sidebar selector - make sure it's correct for Deepseek (check if they change this class in future updates)
+const sidebarSelector = '.b8812f16';
+
+function initFolderManager() {
+    const sidebar = document.querySelector(sidebarSelector);
+    if (sidebar && !document.getElementById('folderManagerContainer')) {
+        console.log('✅ Sidebar detected - injecting Folder Manager');
         injectFolderManager(sidebar);
-    } else {
-        console.log('⏳ Sidebar not found yet, retrying...');
-        setTimeout(waitForSidebar, 1000);  // Retry after 1 second
     }
 }
 
-// 2️⃣ Inject Folder Manager UI into the sidebar
 function injectFolderManager(sidebar) {
-    if (document.getElementById('folderManagerContainer')) return;  // Prevent duplicate injection
-
     const folderManager = document.createElement('div');
     folderManager.id = 'folderManagerContainer';
     folderManager.style.padding = '10px';
@@ -27,43 +23,60 @@ function injectFolderManager(sidebar) {
     folderManager.style.borderRadius = '5px';
 
     const title = document.createElement('h3');
-    title.innerText = '📂 Folder Manager (Synced)';
+    title.innerText = '📂 Folder Manager';
     title.style.fontSize = '14px';
     title.style.marginBottom = '8px';
     folderManager.appendChild(title);
 
-    const createFolderButton = document.createElement('button');
-    createFolderButton.innerText = '➕ Create Folder';
-    createFolderButton.style.padding = '6px 10px';
-    createFolderButton.style.cursor = 'pointer';
-    createFolderButton.style.background = '#3b82f6';
-    createFolderButton.style.color = '#fff';
-    createFolderButton.style.border = 'none';
-    createFolderButton.style.borderRadius = '4px';
+    // Create Folder Button
+    const createFolderBtn = document.createElement('button');
+    createFolderBtn.innerText = '➕ Create Folder';
+    createFolderBtn.style.padding = '6px 10px';
+    createFolderBtn.style.backgroundColor = '#4CAF50';
+    createFolderBtn.style.color = '#fff';
+    createFolderBtn.style.border = 'none';
+    createFolderBtn.style.borderRadius = '4px';
+    createFolderBtn.style.cursor = 'pointer';
+    createFolderBtn.style.marginBottom = '10px';
+    createFolderBtn.onclick = createFolderHandler;
+    folderManager.appendChild(createFolderBtn);
 
+    // Folder List Container
     const folderList = document.createElement('div');
     folderList.id = 'folderList';
-    folderList.style.marginTop = '10px';
-
-    createFolderButton.onclick = () => {
-        const folderName = prompt('Enter folder name:');
-        if (folderName) {
-            addFolder(folderName, folderList);
-            saveFoldersToSyncStorage();
-        }
-    };
-
-    folderManager.appendChild(createFolderButton);
     folderManager.appendChild(folderList);
+
     sidebar.appendChild(folderManager);
 
+    // Load folders from storage when sidebar is reopened
     loadFoldersFromSyncStorage(folderList);
 }
 
-// 3️⃣ Add a folder (render only)
+function createFolderHandler() {
+    const folderName = prompt('Enter folder name:');
+    if (folderName) {
+        chrome.storage.sync.get(['deepseekFolders'], (result) => {
+            const folders = result.deepseekFolders || [];
+            folders.push(folderName);
+            chrome.storage.sync.set({ deepseekFolders: folders }, () => {
+                addFolder(folderName, document.getElementById('folderList'));
+            });
+        });
+    }
+}
+
+function loadFoldersFromSyncStorage(container) {
+    chrome.storage.sync.get(['deepseekFolders'], (result) => {
+        const savedFolders = result.deepseekFolders || [];
+        console.log('📂 Loaded folders from sync:', savedFolders);
+        container.innerHTML = '';  // Clear to avoid duplicates
+        savedFolders.forEach(folderName => addFolder(folderName, container));
+    });
+}
+
 function addFolder(name, container) {
     const folder = document.createElement('div');
-    folder.dataset.folderName = name; // store plain name for easier removal & saving
+    folder.dataset.folderName = name;
     folder.innerText = `📁 ${name}`;
     folder.style.marginTop = '5px';
     folder.style.padding = '5px';
@@ -75,39 +88,39 @@ function addFolder(name, container) {
 
     const deleteBtn = document.createElement('button');
     deleteBtn.innerText = '❌';
-    deleteBtn.style.marginLeft = '10px';
-    deleteBtn.style.cursor = 'pointer';
-    deleteBtn.style.background = 'transparent';
-    deleteBtn.style.color = '#f87171';
+    deleteBtn.style.background = 'none';
     deleteBtn.style.border = 'none';
-    deleteBtn.style.fontSize = '12px';
-
-    deleteBtn.onclick = () => {
-        folder.remove();
-        saveFoldersToSyncStorage();
-    };
+    deleteBtn.style.color = 'red';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.onclick = () => deleteFolder(name);
 
     folder.appendChild(deleteBtn);
     container.appendChild(folder);
 }
 
-// 4️⃣ Save folders (store plain names without 📁)
-function saveFoldersToSyncStorage() {
-    const folderNames = Array.from(document.querySelectorAll('#folderList div'))
-        .map(folder => folder.dataset.folderName);  // Use the stored name, not the text content
-    chrome.storage.sync.set({ deepseekFolders: folderNames }, () => {
-        console.log('📁 Folders saved to sync storage:', folderNames);
-    });
-}
-
-// 5️⃣ Load folders (plain names, add 📁 on display only)
-function loadFoldersFromSyncStorage(container) {
+function deleteFolder(folderName) {
     chrome.storage.sync.get(['deepseekFolders'], (result) => {
-        const savedFolders = result.deepseekFolders || [];
-        console.log('📂 Loaded folders from sync storage:', savedFolders);
-        savedFolders.forEach(folderName => addFolder(folderName, container));
+        const folders = result.deepseekFolders || [];
+        const updatedFolders = folders.filter(name => name !== folderName);
+        chrome.storage.sync.set({ deepseekFolders: updatedFolders }, () => {
+            document.querySelectorAll(`[data-folder-name="${folderName}"]`).forEach(el => el.remove());
+        });
     });
 }
 
-// 🚀 Start sidebar detection
-waitForSidebar();
+function observeSidebar() {
+    const observer = new MutationObserver(() => {
+        initFolderManager();
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Initial check in case sidebar already exists
+    initFolderManager();
+}
+
+// Start observing
+observeSidebar();
